@@ -1,7 +1,6 @@
 # app.py
 import flet as ft
-from handlers import make_handle_pick_files, make_handle_save_file
-
+from handlers import Handlers
 
 def main(page: ft.Page):
     selected_files = ft.Text()
@@ -10,18 +9,15 @@ def main(page: ft.Page):
         expand=True,
         padding=0,
     )
-
+    handlers = Handlers()
 
     # 非同期ハンドラ
-    # handle_pick_files = make_handle_pick_files(selected_files)
-    
-    handle_pick_files = make_handle_pick_files(
-        page=page,
-        selected_files_text=selected_files,
-        output_area=output_area,
+    handle_pick_files = handlers.make_handle_pick_files(
+        selected_files,
+        output_area,
     )
 
-    handle_save_file = make_handle_save_file(save_file_path)
+    handle_save_file = handlers.make_handle_save_file(save_file_path)
     
     # 画面サイズ
     page.window.width = 500
