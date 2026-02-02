@@ -1,5 +1,8 @@
 # handlers.py
 import flet as ft
+import asyncio
+import pandas as pd
+
 
 
 def make_handle_pick_files(selected_files_text: ft.Text):
@@ -9,6 +12,16 @@ def make_handle_pick_files(selected_files_text: ft.Text):
             ", ".join(f.name for f in files) if files else "Cancelled"
         )
         selected_files_text.update()
+        
+        
+        df = await asyncio.to_thread(
+            pd.read_excel,
+            files[0].path,
+            engine="openpyxl",
+            # sheet_name=0,
+            # dtype=str,
+        )
+
 
     return handle_pick_files
 
