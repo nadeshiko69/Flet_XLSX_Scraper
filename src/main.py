@@ -1,39 +1,52 @@
+# app.py
 import flet as ft
+from handlers import make_handle_pick_files, make_handle_save_file
 
 
 def main(page: ft.Page):
-    async def handle_pick_files(e: ft.Event[ft.Button]):
-        files = await ft.FilePicker().pick_files(allow_multiple=True)
-        selected_files.value = (
-            ", ".join(map(lambda f: f.name, files)) if files else "Cancelled"
-        )
+    selected_files = ft.Text()
+    save_file_path = ft.Text()
 
-    async def handle_save_file(e: ft.Event[ft.Button]):
-        save_file_path.value = await ft.FilePicker().save_file()
-        
+    # 非同期ハンドラ
+    handle_pick_files = make_handle_pick_files(selected_files)
+    handle_save_file = make_handle_save_file(save_file_path)
+    
+    # 画面サイズ
+    page.window.width = 500
+    page.window.height = 500
+
+    # UI
     page.add(
-        ft.Row(
-            controls=[
-                ft.Button(
-                    content="Pick files",
-                    icon=ft.Icons.UPLOAD_FILE,
-                    on_click=handle_pick_files,
+        ft.SafeArea(
+            ft.Column(
+                expand=True,
+                controls=[
+                ft.Row(
+                    controls=[
+                        ft.Button(
+                            content="Open Excel",
+                            icon=ft.Icons.UPLOAD_FILE,
+                            on_click=handle_pick_files,
+                        ),
+                        selected_files,
+                    ]
                 ),
-                selected_files := ft.Text(),
-            ]
-        ),
-        ft.Row(
-            controls=[
-                ft.Button(
-                    content="Save file",
-                    icon=ft.Icons.SAVE,
-                    on_click=handle_save_file,
-                    disabled=page.web,  # disable this button in web mode
+                ft.Row(
+                    controls=[
+                        ft.Button(
+                            content="Save Flet",
+                            icon=ft.Icons.SAVE,
+                            on_click=handle_save_file,
+                            disabled=page.web,  # web では無効化
+                        ),
+                        save_file_path,
+                    ]
                 ),
-                save_file_path := ft.Text(),
-            ]
+                
+            ])
         )
     )
 
 
-ft.run(main)
+if __name__ == "__main__":
+    ft.run(main)
