@@ -2,6 +2,7 @@
 import flet as ft
 import asyncio
 import pandas as pd
+import openpyxl
 from CreateFluxQuery.Get_query_dataframe import GetQueryDataframe
 
 class Handlers:
@@ -35,6 +36,7 @@ class Handlers:
             )
 
             f = result[0]
+            # print(f.path)
             selected_files_text.value = f.name or "selected"
             selected_files_text.update()
 
@@ -51,10 +53,12 @@ class Handlers:
                 # df = pd.read_excel(excel_path, sheet_name, dtype=str, header=None)
                 
                 # 重い処理なので別スレッド
+                self.queryDataFrame.query_num = "4-2"
                 self.queryDataFrame.query_dataframe = await asyncio.to_thread(
                 # df = await asyncio.to_thread(
                     pd.read_excel,
                     f.path,
+                    "4-2_UJ×FWCDL_ANSER取引の処理時間",
                     dtype=str,
                     header=None,   
                     engine="openpyxl",
