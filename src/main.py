@@ -7,7 +7,8 @@ def main(page: ft.Page):
     save_file_path = ft.Text()
     output_area = ft.Container(
         expand=True,
-        padding=0,
+        margin=20,
+        padding=20
     )
     handlers = Handlers()
 
@@ -42,10 +43,10 @@ def main(page: ft.Page):
                 ft.Row(
                     controls=[
                         ft.Button(
-                            content="Save Flet",
+                            content="Save Flux",
                             icon=ft.Icons.SAVE,
                             on_click=handle_save_file,
-                            disabled=page.web,  # web では無効化
+                            disabled=page.web
                         ),
                         save_file_path,
                     ]
