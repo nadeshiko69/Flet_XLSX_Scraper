@@ -53,12 +53,11 @@ class Handlers:
                 # df = pd.read_excel(excel_path, sheet_name, dtype=str, header=None)
                 
                 # 重い処理なので別スレッド
-                self.queryDataFrame.query_num = "4-2"
+                self.queryDataFrame.query_num = "3-3"
                 self.queryDataFrame.query_dataframe = await asyncio.to_thread(
-                # df = await asyncio.to_thread(
                     pd.read_excel,
                     f.path,
-                    "4-2_UJ×FWCDL_ANSER取引の処理時間",
+                    "3-3_FWCDL_オンライン　長時間取引",
                     dtype=str,
                     header=None,   
                     engine="openpyxl",
@@ -68,9 +67,10 @@ class Handlers:
                 self.queryDataFrame.get_input_output_info()
                 self.queryDataFrame.get_search_units()
                 self.queryDataFrame.get_query_elem()
-                # DF表示
+                # table:DataTable
                 table = self._df_to_datatable(self.queryDataFrame.query_elem, max_rows=50, max_cols=20)
-                output_area.content = ft.Container(content=table, expand=True)
+                scrolling = ft.Column(scroll="always",expand=True,controls=[table])
+                output_area.content = ft.Container(expand=True,content=scrolling)
                 output_area.update()
 
                 # 保持
