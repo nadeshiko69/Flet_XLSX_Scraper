@@ -21,8 +21,8 @@ def main(page: ft.Page):
     handle_save_file = handlers.make_handle_save_file(save_file_path)
     
     # 画面サイズ
-    page.window.width = 500
-    page.window.height = 500
+    page.window.width = 1000
+    page.window.height = 1000
 
     # UI
     page.add(
@@ -51,8 +51,17 @@ def main(page: ft.Page):
                         save_file_path,
                     ]
                 ),
-                output_area,
-            ])
+                ft.Row(
+                    controls=[
+                        output_area,
+                        ft.Container(
+                            width=page.window.width / 2
+                        )
+                    ],
+                    expand=True
+                )
+            ]),
+            expand=True,
         )
     )
 
