@@ -1,70 +1,81 @@
-# app.py
 import flet as ft
 from handlers import Handlers
 
 def main(page: ft.Page):
     selected_files = ft.Text()
     save_file_path = ft.Text()
-    output_area = ft.Container(
-        expand=True,
-        margin=20,
-        padding=20
-    )
-    handlers = Handlers()
 
-    # 非同期ハンドラ
-    handle_pick_files = handlers.make_handle_pick_files(
-        selected_files,
-        output_area,
-    )
-
-    handle_save_file = handlers.make_handle_save_file(save_file_path)
+    information_area =  ft.Container(
+                        expand=True,
+                        padding=10,
+                        bgcolor=ft.Colors.SURFACE,
+                        border=ft.border.all(1, ft.Colors.GREY_400),
+                        border_radius=8,
+                        content=ft.Column(
+                            expand=True,
+                            horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
+                            controls=[
+                                ft.Text(
+                                    value="Query Information Table",
+                                    selectable=True,
+                                )
+                            ],
+                        ),
+                    )
+    query_area = ft.Container(
+                                expand=True,
+                                padding=10,
+                                bgcolor=ft.Colors.SURFACE,
+                                border=ft.border.all(1, ft.Colors.GREY_400),
+                                border_radius=8,
+                                content=ft.Column(
+                                    expand=True,
+                                    horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
+                                    controls=[
+                                        ft.Text(
+                                            value="Output Query",
+                                            selectable=True,
+                                        )
+                                    ],
+                                ),
+                            )
     
-    # 画面サイズ
+    handlers = Handlers()
+    handle_pick_files = handlers.make_handle_pick_files(selected_files, information_area, query_area)
+    # handle_save_file = handlers.make_handle_save_file(save_file_path)
+
     page.window.width = 1000
     page.window.height = 1000
 
-    # UI
     page.add(
         ft.SafeArea(
-            ft.Column(
+            content=ft.Column(
                 expand=True,
                 controls=[
-                ft.Row(
-                    controls=[
-                        ft.Button(
-                            content="Open Excel",
-                            icon=ft.Icons.UPLOAD_FILE,
-                            on_click=handle_pick_files,
-                        ),
-                        selected_files,
-                    ]
-                ),
-                ft.Row(
-                    controls=[
-                        ft.Button(
-                            content="Save Flux",
-                            icon=ft.Icons.SAVE,
-                            on_click=handle_save_file,
-                            disabled=page.web
-                        ),
-                        save_file_path,
-                    ]
-                ),
-                ft.Row(
-                    controls=[
-                        output_area,
-                        ft.Container(
-                            width=page.window.width / 2
-                        )
-                    ],
-                    expand=True
-                )
-            ]),
+                    ft.Row(
+                        controls=[
+                            ft.Button(
+                                content="Open Excel",
+                                icon=ft.Icons.UPLOAD_FILE,
+                                on_click=handle_pick_files,
+                            ),
+                            selected_files,
+                        ]
+                    ),
+                    ft.Row(
+                        expand=True,
+                        vertical_alignment=ft.CrossAxisAlignment.STRETCH,
+                        controls=[
+                            information_area,                            
+                            query_area
+
+                        ],
+                    ),
+                ],
+            ),
             expand=True,
         )
     )
-
 
 if __name__ == "__main__":
     ft.run(main)

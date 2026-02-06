@@ -3,13 +3,18 @@ import flet as ft
 import asyncio
 import pandas as pd
 import openpyxl
+from typing import Callable
 from CreateFluxQuery.Get_query_dataframe import GetQueryDataframe
+from CreateFluxQuery.Get_template_parameter import TemplateParameter
+from CreateFluxQuery.Make_Flux_File import MakeFluxFile
 
 class Handlers:
     queryDataFrame:GetQueryDataframe
     
     def __init__(self):
         self.queryDataFrame = GetQueryDataframe()
+        self.templateParameter = TemplateParameter()
+        self.makeFluxFile = MakeFluxFile()
 
     def make_handle_save_file(self, save_file_path_text: ft.Text):
         async def handle_save_file(e: ft.ControlEvent):
@@ -27,7 +32,8 @@ class Handlers:
     def make_handle_pick_files(
         self,
         selected_files_text: ft.Text,
-        output_area: ft.Container,
+        information_area: ft.Container,
+        query_area:ft.Container
     ):
         async def handle_pick_files(e: ft.ControlEvent):
             result = await ft.FilePicker().pick_files(
@@ -39,20 +45,16 @@ class Handlers:
             # print(f.path)
             selected_files_text.value = f.name or "selected"
             selected_files_text.update()
-
+            handle_create_flux = self.make_handle_create_flux(query_area)
             # 読み込み中
-            output_area.content = ft.Row(
+            information_area.content = ft.Row(
                 alignment=ft.MainAxisAlignment.CENTER,
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
                 controls=[ft.CupertinoActivityIndicator(radius=16, color=ft.Colors.BLUE)],
             )
-            output_area.update()
+            information_area.update()
 
             try:
-                
-                # df = pd.read_excel(excel_path, sheet_name, dtype=str, header=None)
-                
-                # 重い処理なので別スレッド
                 self.queryDataFrame.query_num = "3-3"
                 self.queryDataFrame.query_dataframe = await asyncio.to_thread(
                     pd.read_excel,
@@ -69,18 +71,77 @@ class Handlers:
                 self.queryDataFrame.get_query_elem()
                 # table:DataTable
                 table = self._df_to_datatable(self.queryDataFrame.query_elem, max_rows=50, max_cols=20)
-                scrolling = ft.Column(scroll="always",expand=True,controls=[table])
-                output_area.content = ft.Container(expand=True,content=scrolling)
-                output_area.update()
+                
+                horizontal_scroller = ft.Row(
+                    scroll="always",
+                    controls=[table],
+                )
+                
+                scroller = ft.ListView(
+                    expand=True,
+                    controls=[horizontal_scroller],
+                )
 
-                # 保持
-                # page.session.set("excel_df", df)
+                information_area.content = ft.Container(
+                    expand=True,
+                    content=ft.Column(
+                        expand=True,
+                        controls=[
+                            scroller,
+                            ft.Button(
+                                content="Create Flux",
+                                icon=ft.Icons.UPLOAD_FILE,
+                                on_click= handle_create_flux,
+                            ),
+                        ],
+                    ),
+                )
+
+                information_area.update()
+
+                # Patareter取得
+                
 
             except Exception as ex:
-                output_area.content = ft.Text(f"読み込み失敗: {ex}", color=ft.Colors.RED)
-                output_area.update()
+                information_area.content = ft.Text(f"読み込み失敗: {ex}", color=ft.Colors.RED)
+                information_area.update()
 
         return handle_pick_files
+
+    def make_handle_create_flux(
+        self,
+        query_area: ft.Container,
+        *,
+        on_done: Callable[[str], None] | None = None,
+    ):
+        async def handle_create_flux(e: ft.ControlEvent):
+            try:
+                # Create Parameter
+                self.templateParameter.exec_func(self.queryDataFrame)
+                ret = self.makeFluxFile.exec_func(self.queryDataFrame.query_num, self.templateParameter)
+                        
+                flux_text = ret
+
+                query_area.content = ft.Container(
+                    expand=True,
+                    border=ft.border.all(1, ft.Colors.GREY_400),
+                    border_radius=8,
+                    padding=8,
+                    content=ft.ListView(
+                        expand=True,
+                        controls=[ft.Text(flux_text, selectable=True)],
+                    ),
+                )
+                query_area.update()
+
+                if on_done:
+                    on_done(flux_text)
+
+            except Exception as ex:
+                query_area.content = ft.Text(f"生成失敗: {ex}", color=ft.Colors.RED)
+                query_area.update()
+
+        return handle_create_flux
 
     def _df_to_datatable(self, data, *, max_rows: int = 50, max_cols: int = 20) -> ft.DataTable:
         # --- DataFrame の場合 ---
