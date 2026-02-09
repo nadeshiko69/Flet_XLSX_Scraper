@@ -16,19 +16,6 @@ class Handlers:
         self.makeFluxFile = MakeFluxFile()
         self._selected_rows: set[int] = set()
 
-    def make_handle_save_file(self, save_file_path_text: ft.Text):
-        async def handle_save_file(e: ft.ControlEvent):
-            path = await ft.FilePicker().save_file()
-            
-            if not path.startswith('.flux'): path = f"{path}.flux"
-            
-            save_file_path_text.value = path or ""
-            save_file_path_text.update()
-
-        return handle_save_file
-
-
-
     def make_handle_pick_files(
         self,
         selected_files_text: ft.Text,
@@ -91,7 +78,7 @@ class Handlers:
                             scroller,
                             ft.Button(
                                 content="Create Flux",
-                                icon=ft.Icons.UPLOAD_FILE,
+                                icon=ft.Icons.ARROW_RIGHT,
                                 on_click= handle_create_flux,
                             ),
                         ],
@@ -115,35 +102,89 @@ class Handlers:
         async def handle_create_flux(e: ft.ControlEvent):
             try:
                 # Create Parameter
-                self.templateParameter.exec_func(self.queryDataFrame)
+                self.templateParameter.exec_func(self.queryDataFrame, self._selected_rows)
                 ret = self.makeFluxFile.exec_func(self.queryDataFrame.query_num, self.templateParameter)
-                        
                 flux_text = ret
-                
+
+                async def handle_copy(_e: ft.ControlEvent):
+                    try:
+                        await ft.Clipboard().set(flux_text)
+                        _e.page.page.show_dialog(ft.SnackBar(ft.Text("Copied.")))
+                        e.page.update()
+                    except Exception as ex:
+                        _e.page.page.show_dialog(ft.SnackBar(ft.Text(f"NG: {ex}")))
+                        e.page.update()
+
+                async def handle_save_file(e: ft.ControlEvent):
+                    print(self.templateParameter.output_filename)
+                    path = await ft.FilePicker().save_file(
+                        file_name=self.templateParameter.output_filename,
+                        allowed_extensions=["flux", "txt"],
+                    )
+                    if not path:
+                        e.page.snack_bar = ft.SnackBar(content=ft.Text("保存をキャンセルしました"))
+                        e.page.snack_bar.open = True
+                        e.page.update()
+                        return
+                    if not str(path).lower().endswith(".flux"):
+                        path = f"{path}.flux"
+                    try:
+                        def _write_text(p: str, text: str):
+                            with open(p, "w", encoding="utf-8", newline="\n") as f:
+                                f.write(text)
+
+                        await asyncio.to_thread(_write_text, path, flux_text)
+
+                        e.page.snack_bar = ft.SnackBar(content=ft.Text(f"保存しました: {path}"))
+                        e.page.snack_bar.open = True
+                        e.page.update()
+
+                    except Exception as ex:
+                        e.page.snack_bar = ft.SnackBar(
+                            content=ft.Text(f"保存に失敗しました: {ex}"),
+                            bgcolor=ft.Colors.RED,
+                        )
+                        e.page.snack_bar.open = True
+                        e.page.update()
+
+                md = ft.Markdown(
+                    value=f"```go\n{flux_text}\n```",
+                    code_theme=ft.MarkdownCodeTheme.GITHUB,
+                    extension_set=ft.MarkdownExtensionSet.GITHUB_WEB,
+                )
+
                 query_area.content = ft.Container(
                     expand=True,
                     border_radius=8,
                     bgcolor=ft.Colors.SURFACE,
                     padding=8,
-                    content=ft.ListView(
+                    content=ft.Column(
                         expand=True,
-                        scroll="always",
                         controls=[
-                            ft.Row(
+                            ft.ListView(
+                                expand=True,
                                 scroll="always",
                                 controls=[
-                                    ft.Markdown(
-                                        value=f"```go\n{flux_text}\n```",
-                                        code_theme=ft.MarkdownCodeTheme.GITHUB,
-                                        extension_set=ft.MarkdownExtensionSet.GITHUB_WEB,
-                                    )
-
+                                    ft.Row(scroll="always", controls=[md])
                                 ],
-                            )
+                            ),
+                            ft.Row(
+                                controls=[
+                                    ft.Button(
+                                        content="Copy",
+                                        icon=ft.Icons.COPY,
+                                        on_click=handle_copy,
+                                    ),
+                                    ft.Button(
+                                        content="Save File",
+                                        icon=ft.Icons.SAVE,
+                                        on_click=handle_save_file,
+                                    ),
+                                ],
+                            ),
                         ],
-                    ),
+                    )
                 )
-
                 query_area.update()
 
                 if on_done:
@@ -159,38 +200,35 @@ class Handlers:
         if hasattr(data, "iloc"):  # pandas DataFrame と判定
             sub = data.iloc[:max_rows, :max_cols]
 
-            columns = [ft.DataColumn(ft.Text(str(c))) for c in sub.columns]
-
-            # ★ child_query_target を初期選択集合として使う
-            #    - None でもエラーにならないようにガード
-            #    - サブセット長を超える値は無視
             raw_default = getattr(self.queryDataFrame, "child_query_target", []) or []
             default_checked: set[int] = {i for i in raw_default if isinstance(i, int) and 0 <= i < len(sub)}
 
+            columns: list[ft.DataColumn] = [ft.DataColumn(ft.Text("子クエリ"))]
+            columns += [ft.DataColumn(ft.Text(str(c))) for c in sub.columns]
+
             rows: list[ft.DataRow] = []
             for i, (_, row) in enumerate(sub.iterrows()):
-                cells = [ft.DataCell(ft.Text("" if pd.isna(v) else str(v))) for v in row]
-
-                # 初期状態：child_query_target or 既存の self._selected_rows のいずれかに含まれていれば ON
                 is_selected = (i in default_checked) or (i in self._selected_rows)
-
-                # 内部集合も同期（再描画時に保持）
                 if is_selected:
                     self._selected_rows.add(i)
 
-                rows.append(
-                    ft.DataRow(
-                        selected=is_selected,
-                        # ← あなたの環境で有効なイベント名（on_select_change）を使用
-                        on_select_change=lambda e, i=i: (
-                            self._selected_rows.add(i) if e.data else self._selected_rows.discard(i),
-                            setattr(e.control, "selected", e.data),
-                            e.control.update()
-                        ),
-                        cells=cells,
-                    )
+                # 先頭セル
+                checkbox = ft.Checkbox(
+                    value=is_selected,
+                    on_change=lambda e, i=i: (
+                        self._selected_rows.add(i) if e.control.value else self._selected_rows.discard(i)
+                    ),
                 )
+                data_cells = [ft.DataCell(ft.Text("" if pd.isna(v) else str(v))) for v in row]
+                rows.append(ft.DataRow(cells=[ft.DataCell(checkbox), *data_cells],))
 
-            return ft.DataTable(columns=columns, rows=rows, show_checkbox_column=True)
+            return ft.DataTable(
+                columns=columns,
+                rows=rows,
+                show_checkbox_column=False,
+                # heading_row_height=40,
+                # data_row_max_height=36,
+                # divider_thickness=1,
+            )
 
         return ft.DataTable(columns=[], rows=[], show_checkbox_column=True)
