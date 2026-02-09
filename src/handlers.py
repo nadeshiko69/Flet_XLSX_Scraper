@@ -2,7 +2,6 @@
 import flet as ft
 import asyncio
 import pandas as pd
-import openpyxl
 from typing import Callable
 from CreateFluxQuery.Get_query_dataframe import GetQueryDataframe
 from CreateFluxQuery.Get_template_parameter import TemplateParameter
@@ -15,6 +14,7 @@ class Handlers:
         self.queryDataFrame = GetQueryDataframe()
         self.templateParameter = TemplateParameter()
         self.makeFluxFile = MakeFluxFile()
+        self._selected_rows: set[int] = set()
 
     def make_handle_save_file(self, save_file_path_text: ft.Text):
         async def handle_save_file(e: ft.ControlEvent):
@@ -72,6 +72,7 @@ class Handlers:
                 # table:DataTable
                 table = self._df_to_datatable(self.queryDataFrame.query_elem, max_rows=50, max_cols=20)
                 
+                
                 horizontal_scroller = ft.Row(
                     scroll="always",
                     controls=[table],
@@ -99,9 +100,6 @@ class Handlers:
 
                 information_area.update()
 
-                # Patareter取得
-                
-
             except Exception as ex:
                 information_area.content = ft.Text(f"読み込み失敗: {ex}", color=ft.Colors.RED)
                 information_area.update()
@@ -120,8 +118,7 @@ class Handlers:
                 self.templateParameter.exec_func(self.queryDataFrame)
                 ret = self.makeFluxFile.exec_func(self.queryDataFrame.query_num, self.templateParameter)
                         
-                flux_text = ret # str型
-
+                flux_text = ret
                 
                 query_area.content = ft.Container(
                     expand=True,
@@ -135,17 +132,10 @@ class Handlers:
                             ft.Row(
                                 scroll="always",
                                 controls=[
-                                    # ft.Text(
-                                    #     flux_text,
-                                    #     selectable=True,
-                                    #     no_wrap=True,
-                                    # )
-                                    
                                     ft.Markdown(
                                         value=f"```go\n{flux_text}\n```",
                                         code_theme=ft.MarkdownCodeTheme.GITHUB,
                                         extension_set=ft.MarkdownExtensionSet.GITHUB_WEB,
-                                        # 必要に応じて等幅フォント風の style を追加してもOK
                                     )
 
                                 ],
@@ -166,45 +156,41 @@ class Handlers:
         return handle_create_flux
 
     def _df_to_datatable(self, data, *, max_rows: int = 50, max_cols: int = 20) -> ft.DataTable:
-        # --- DataFrame の場合 ---
         if hasattr(data, "iloc"):  # pandas DataFrame と判定
             sub = data.iloc[:max_rows, :max_cols]
+
             columns = [ft.DataColumn(ft.Text(str(c))) for c in sub.columns]
-            rows = [
-                ft.DataRow(
-                    cells=[ft.DataCell(ft.Text("" if pd.isna(v) else str(v))) for v in row]
+
+            # ★ child_query_target を初期選択集合として使う
+            #    - None でもエラーにならないようにガード
+            #    - サブセット長を超える値は無視
+            raw_default = getattr(self.queryDataFrame, "child_query_target", []) or []
+            default_checked: set[int] = {i for i in raw_default if isinstance(i, int) and 0 <= i < len(sub)}
+
+            rows: list[ft.DataRow] = []
+            for i, (_, row) in enumerate(sub.iterrows()):
+                cells = [ft.DataCell(ft.Text("" if pd.isna(v) else str(v))) for v in row]
+
+                # 初期状態：child_query_target or 既存の self._selected_rows のいずれかに含まれていれば ON
+                is_selected = (i in default_checked) or (i in self._selected_rows)
+
+                # 内部集合も同期（再描画時に保持）
+                if is_selected:
+                    self._selected_rows.add(i)
+
+                rows.append(
+                    ft.DataRow(
+                        selected=is_selected,
+                        # ← あなたの環境で有効なイベント名（on_select_change）を使用
+                        on_select_change=lambda e, i=i: (
+                            self._selected_rows.add(i) if e.data else self._selected_rows.discard(i),
+                            setattr(e.control, "selected", e.data),
+                            e.control.update()
+                        ),
+                        cells=cells,
+                    )
                 )
-                for _, row in sub.iterrows()
-            ]
-            return ft.DataTable(columns=columns, rows=rows)
 
-        # --- list[list] の場合 ---
-        if isinstance(data, list) and len(data) > 0 and isinstance(data[0], (list, tuple)):
-            # 列数制限
-            sub = [row[:max_cols] for row in data[:max_rows]]
+            return ft.DataTable(columns=columns, rows=rows, show_checkbox_column=True)
 
-            # 列名は 0,1,2,... とする
-            columns = [ft.DataColumn(ft.Text(str(i))) for i in range(len(sub[0]))]
-
-            rows = [
-                ft.DataRow(cells=[ft.DataCell(ft.Text(str(cell))) for cell in row])
-                for row in sub
-            ]
-            return ft.DataTable(columns=columns, rows=rows)
-
-        # --- list[dict] の場合 ---
-        if isinstance(data, list) and len(data) > 0 and isinstance(data[0], dict):
-            cols = list(data[0].keys())[:max_cols]
-            sub = data[:max_rows]
-
-            columns = [ft.DataColumn(ft.Text(str(c))) for c in cols]
-            rows = [
-                ft.DataRow(
-                    cells=[ft.DataCell(ft.Text(str(row.get(c, "")))) for c in cols]
-                )
-                for row in sub
-            ]
-            return ft.DataTable(columns=columns, rows=rows)
-
-        # 不明な形式
-        return ft.DataTable(columns=[], rows=[])
+        return ft.DataTable(columns=[], rows=[], show_checkbox_column=True)
