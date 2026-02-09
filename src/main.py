@@ -9,7 +9,7 @@ def main(page: ft.Page):
                         expand=True,
                         padding=10,
                         bgcolor=ft.Colors.SURFACE,
-                        border=ft.border.all(1, ft.Colors.GREY_400),
+                        border=ft.Border.all(1, ft.Colors.GREY_400),
                         border_radius=8,
                         content=ft.Column(
                             expand=True,
@@ -26,7 +26,7 @@ def main(page: ft.Page):
                                 expand=True,
                                 padding=10,
                                 bgcolor=ft.Colors.SURFACE,
-                                border=ft.border.all(1, ft.Colors.GREY_400),
+                                border=ft.Border.all(1, ft.Colors.GREY_400),
                                 border_radius=8,
                                 content=ft.Column(
                                     expand=True,
