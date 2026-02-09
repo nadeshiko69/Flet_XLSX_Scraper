@@ -120,18 +120,40 @@ class Handlers:
                 self.templateParameter.exec_func(self.queryDataFrame)
                 ret = self.makeFluxFile.exec_func(self.queryDataFrame.query_num, self.templateParameter)
                         
-                flux_text = ret
+                flux_text = ret # str型
 
+                
                 query_area.content = ft.Container(
                     expand=True,
-                    border=ft.border.all(1, ft.Colors.GREY_400),
                     border_radius=8,
+                    bgcolor=ft.Colors.SURFACE,
                     padding=8,
                     content=ft.ListView(
                         expand=True,
-                        controls=[ft.Text(flux_text, selectable=True)],
+                        scroll="always",
+                        controls=[
+                            ft.Row(
+                                scroll="always",
+                                controls=[
+                                    # ft.Text(
+                                    #     flux_text,
+                                    #     selectable=True,
+                                    #     no_wrap=True,
+                                    # )
+                                    
+                                    ft.Markdown(
+                                        value=f"```go\n{flux_text}\n```",
+                                        code_theme=ft.MarkdownCodeTheme.GITHUB,
+                                        extension_set=ft.MarkdownExtensionSet.GITHUB_WEB,
+                                        # 必要に応じて等幅フォント風の style を追加してもOK
+                                    )
+
+                                ],
+                            )
+                        ],
                     ),
                 )
+
                 query_area.update()
 
                 if on_done:
