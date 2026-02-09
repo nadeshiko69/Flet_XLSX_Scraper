@@ -3,7 +3,7 @@ from handlers import Handlers
 
 def main(page: ft.Page):
     selected_files = ft.Text()
-    save_file_path = ft.Text()
+    dropdown_area  = ft.Container(width=380, alignment=ft.Alignment.CENTER_LEFT)
 
     information_area =  ft.Container(
                         expand=True,
@@ -41,10 +41,9 @@ def main(page: ft.Page):
                             )
     
     handlers = Handlers()
-    handle_pick_files = handlers.make_handle_pick_files(selected_files, information_area, query_area)
-    # handle_save_file = handlers.make_handle_save_file(save_file_path)
+    handle_pick_files = handlers.make_handle_pick_files(selected_files, information_area, dropdown_area, query_area)
 
-    page.window.width = 1000
+    page.window.width = 1500
     page.window.height = 1000
 
     page.add(
@@ -60,6 +59,7 @@ def main(page: ft.Page):
                                 on_click=handle_pick_files,
                             ),
                             selected_files,
+                            dropdown_area
                         ]
                     ),
                     ft.Row(

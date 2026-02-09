@@ -20,6 +20,7 @@ class Handlers:
         self,
         selected_files_text: ft.Text,
         information_area: ft.Container,
+        dropdown_area:ft.Container,
         query_area:ft.Container
     ):
         async def handle_pick_files(e: ft.ControlEvent):
@@ -27,69 +28,100 @@ class Handlers:
                 allow_multiple=False,
                 allowed_extensions=["xlsx", "xls", "xlsm"],
             )
-
             f = result[0]
-            # print(f.path)
+
             selected_files_text.value = f.name or "selected"
             selected_files_text.update()
-            handle_create_flux = self.make_handle_create_flux(query_area)
-            # 読み込み中
-            information_area.content = ft.Row(
-                alignment=ft.MainAxisAlignment.CENTER,
-                vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                controls=[ft.CupertinoActivityIndicator(radius=16, color=ft.Colors.BLUE)],
-            )
-            information_area.update()
+            def _list_sheets(p: str) -> list[str]:
+                with pd.ExcelFile(p, engine="openpyxl") as xls:
+                    return xls.sheet_names
 
             try:
-                self.queryDataFrame.query_num = "3-3"
-                self.queryDataFrame.query_dataframe = await asyncio.to_thread(
-                    pd.read_excel,
-                    f.path,
-                    "3-3_FWCDL_オンライン　長時間取引",
-                    dtype=str,
-                    header=None,   
-                    engine="openpyxl",
-                )
-                
-                self.queryDataFrame.get_query_information()
-                self.queryDataFrame.get_input_output_info()
-                self.queryDataFrame.get_search_units()
-                self.queryDataFrame.get_query_elem()
-                # table:DataTable
-                table = self._df_to_datatable(self.queryDataFrame.query_elem, max_rows=50, max_cols=20)
-                
-                
-                horizontal_scroller = ft.Row(
-                    scroll="always",
-                    controls=[table],
-                )
-                
-                scroller = ft.ListView(
-                    expand=True,
-                    controls=[horizontal_scroller],
-                )
-
-                information_area.content = ft.Container(
-                    expand=True,
-                    content=ft.Column(
-                        expand=True,
-                        controls=[
-                            scroller,
-                            ft.Button(
-                                content="Create Flux",
-                                icon=ft.Icons.ARROW_RIGHT,
-                                on_click= handle_create_flux,
-                            ),
-                        ],
-                    ),
-                )
-
-                information_area.update()
-
+                sheets: list[str] = await asyncio.to_thread(_list_sheets, f.path)
             except Exception as ex:
-                information_area.content = ft.Text(f"読み込み失敗: {ex}", color=ft.Colors.RED)
+                information_area.content = ft.Text(f"シート名の取得に失敗: {ex}", color=ft.Colors.RED)
                 information_area.update()
+                return
+            sheet_dd = ft.Dropdown(
+                label="Select Query",
+                options=[ft.dropdown.Option(name) for name in sheets],
+                value=(sheets[0] if sheets else None),
+                expand=True,
+            )
+            dropdown_area.content = sheet_dd
+            dropdown_area.update()
+
+            async def load_selected_sheet(_e: ft.ControlEvent):
+                information_area.content = ft.Row(
+                    alignment=ft.MainAxisAlignment.CENTER,
+                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                    controls=[ft.CupertinoActivityIndicator(radius=16, color=ft.Colors.BLUE)],
+                )
+                information_area.update()
+                try:
+                    self.queryDataFrame.query_num = "3-3"
+                    self.queryDataFrame.query_dataframe = await asyncio.to_thread(
+                        pd.read_excel,
+                        f.path,
+                        sheet_dd.value,
+                        dtype=str,
+                        header=None,
+                        engine="openpyxl",
+                    )
+
+                    # 4) 以降は従来の処理
+                    self.queryDataFrame.get_query_information()
+                    self.queryDataFrame.get_input_output_info()
+                    self.queryDataFrame.get_search_units()
+                    self.queryDataFrame.get_query_elem()
+
+                    table = self._df_to_datatable(self.queryDataFrame.query_elem, max_rows=50, max_cols=20)
+                    horizontal_scroller = ft.Row(scroll="always", controls=[table])
+                    scroller = ft.ListView(expand=True, controls=[horizontal_scroller])
+
+                    handle_create_flux = self.make_handle_create_flux(query_area)
+
+                    information_area.content = ft.Container(
+                        expand=True,
+                        content=ft.Column(
+                            expand=True,
+                            controls=[
+                                scroller,
+                                ft.Button(
+                                    content="Create Flux",
+                                    icon=ft.Icons.ARROW_RIGHT,
+                                    on_click=handle_create_flux,
+                                ),
+                            ],
+                        ),
+                    )
+                    information_area.update()
+
+                except Exception as ex:
+                    information_area.content = ft.Text(f"読み込み失敗: {ex}", color=ft.Colors.RED)
+                    information_area.update()
+
+            # 初期画面：シート選択→読み込みボタン
+            information_area.content = ft.Container(
+                expand=True,
+                content=ft.Column(
+                    expand=True,
+                    controls=[
+                        ft.Text("シート名の一覧", style=ft.TextThemeStyle.TITLE_MEDIUM),
+                        sheet_dd,
+                        ft.Row(
+                            controls=[
+                                ft.Button(
+                                    content="このシートを読み込む",
+                                    icon=ft.Icons.DOWNLOAD,
+                                    on_click=load_selected_sheet,
+                                )
+                            ]
+                        )
+                    ],
+                ),
+            )
+            information_area.update()
 
         return handle_pick_files
 
@@ -196,6 +228,8 @@ class Handlers:
 
         return handle_create_flux
 
+    # TODO : 表示項目を絞る
+    # 子クエリ、CSVヘッダ、集計キー、INPUT_入力データ物理名くらいでいいかも
     def _df_to_datatable(self, data, *, max_rows: int = 50, max_cols: int = 20) -> ft.DataTable:
         if hasattr(data, "iloc"):  # pandas DataFrame と判定
             sub = data.iloc[:max_rows, :max_cols]
