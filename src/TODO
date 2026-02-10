@@ -1,0 +1,3 @@
+- ドロップダウンの選択でInformationの表示を切り替える
+- Informationの表示内容を絞る
+- Informationでint/floatを選択して、resultの欠損値補完を自動化する
