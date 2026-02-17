@@ -293,7 +293,7 @@ class TemplateParameter:
         self.get_group_key(query_dataframe)             # RESULT_GROUP, PIVOTED_ROWKEY
         self.get_direct_parameter(query_dataframe)      # QUERY_INFO, QUERY_ELEM, OUTPUT_FILENAME, MEASUREMENT, BUCKET
         self.get_time_parameter(query_dataframe)        # START_UTC, STOP_UTC
-        self.get_tag_filter(query_dataframe)            # TAG_FILTER
+        # self.get_tag_filter(query_dataframe)            # TAG_FILTER
         self.get_field_filter(query_dataframe)          # FIELD_FILTER
         self.get_jst_range_clip(query_dataframe)        # JST_RANGE_CLIP
         self.get_child_query(query_dataframe, child_query)           # CHILD_QUERY, child_query_list

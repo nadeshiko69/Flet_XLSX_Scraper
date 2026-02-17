@@ -38,11 +38,11 @@ class GetQueryDataframe:
         # 出力項目の集計処理
         self.query_elem = pd.DataFrame({ 
                         "項番":                  pd.Series(dtype="str"),
-                        "OUTPUT_CSV項目":        pd.Series(dtype="str"),
+                        "OUTPUT CSV項目":        pd.Series(dtype="str"),
                         "CSVヘッダ":             pd.Series(dtype="str"),
-                        "集計キー":              pd.Series(dtype="str"), # 3-XX以降のみ存在
-                        "INPUT_入力データ物理名": pd.Series(dtype="str"),
-                        "INPUT_項目名":          pd.Series(dtype="str"),
+                        "集計のキー":              pd.Series(dtype="str"), # 3-XX以降のみ存在
+                        "入力データ物理名": pd.Series(dtype="str"),
+                        "項目名":          pd.Series(dtype="str"),
                         "処理":                  pd.Series(dtype="str"),
                         "説明":                  pd.Series(dtype="str")
                         })
@@ -137,53 +137,53 @@ class GetQueryDataframe:
 
     # クエリの出力項目を取得
     def get_query_elem(self):
-        # row_num = self.query_dataframe.index[self.query_dataframe[1] == "OUTPUT CSV出力項目の集計処理"].tolist()
-        row_num = self.query_dataframe.index[self.query_dataframe[1] == "OUTPUT CSV出力項目毎の集計処理"].tolist()
+        row_num = self.query_dataframe.index[self.query_dataframe[1] == "OUTPUT CSV出力項目毎の集計処理"].tolist()[0] # query_elemを取得し始める行番号
+        end_num = self.query_dataframe.index[self.query_dataframe[1] == "OUTPUTイメージ"].tolist()[0]-2 # query_elemを取得し終わる行番号
 
-        init_num = row_num[0]+3
+        # 列名を2行分チェック
+        row_title_1 = self.query_dataframe.iloc[row_num+1]
+        row_title_2 = self.query_dataframe.iloc[row_num+2]
+              
+        init_num = row_num+3
         cnt = init_num
         while True:
-            if self.query_num.startswith("1-"): 
-                s_key=None
-                tmp_num=4
-            else:                               
-                s_key=self.query_dataframe.iloc[cnt][4]
-                tmp_num=5
-            num = self.query_dataframe.iloc[cnt][1] # B列: 項番
-            value = self.query_dataframe.iloc[cnt][2] # C列: OUTPUT CSV項目
-            header = self.query_dataframe.iloc[cnt][3] # D列: CSVヘッダ
-            input_data = self.query_dataframe.iloc[cnt][tmp_num] # E列: INPUT入力データ物理名
-            input_name = self.query_dataframe.iloc[cnt][tmp_num+1] # F列: INPUT項目名
-            # else: # {数字}_ヘッダ名 の形式になっていなければスキップ（TODO: どういう表を作るのかわかっていないので確認する）
-            #     cnt += 1
-            #     continue           
-            if self.query_dataframe.isna().iloc[cnt][tmp_num+2]: # G列: 処理
-                if len(self.query_elem) == 0: # 先頭が空の場合
-                    exec = "-"
+            tmp_list = [] # query_elemの各列の値をquery_dataframeの何列目から取得するか
+            for row_name in self.query_elem:
+                if row_name in row_title_1.values:
+                    col_idx = int(row_title_1[row_title_1 == row_name].index[0])
+                elif row_name in row_title_2.values:
+                    col_idx = int(row_title_2[row_title_2 == row_name].index[0])
                 else:
-                    exec = self.query_elem.iloc[-1]["処理"] #　NaNなら一つ上の内容と同値とする 
-            else:
-                exec = self.query_dataframe.iloc[cnt][tmp_num+3]
-
-            if self.query_dataframe.isna().iloc[cnt][11]: # L列: 説明 
-                if len(self.query_elem) == 0:# 先頭が空の場合
-                    explain = "-"
-                else:
-                    explain = self.query_elem.iloc[-1]["説明"] #　NaNなら一つ上の内容と同値とする 
-            else:
-                explain = self.query_dataframe.iloc[cnt][tmp_num+7]
-
-            self.query_elem.loc[len(self.query_elem)] = [ num, value, header, s_key, input_data, input_name, exec, explain ]   
-
-            # print(header, input_data)
+                    col_idx = None
+                    pass
+                tmp_list.append((row_name, col_idx))
+            tmp_dict = dict(tmp_list)
+            num = self.query_dataframe.iloc[cnt][tmp_dict.get('項番')]
+            value = self.query_dataframe.iloc[cnt][tmp_dict.get('OUTPUT CSV項目')]
+            header = self.query_dataframe.iloc[cnt][tmp_dict.get('CSVヘッダ')]
+            input_data = self.query_dataframe.iloc[cnt][tmp_dict.get('入力データ物理名')]
+            input_name = self.query_dataframe.iloc[cnt][tmp_dict.get('項目名')]
+            exec = self.query_dataframe.iloc[cnt][tmp_dict.get('処理')]
+            explain = self.query_dataframe.iloc[cnt][tmp_dict.get('説明')]
+            
             if input_data.startswith("f_"):
                 self.child_query_target.append(cnt - init_num) # GUI上でチェックをつけておく行数を記憶
-
+            
+            row = pd.Series({
+                "項番": num,
+                "OUTPUT CSV項目": value,
+                "CSVヘッダ": header,
+                "入力データ物理名": input_data,
+                "項目名": input_name,
+                "処理": exec,
+                "説明": explain,
+            })
+            self.query_elem.loc[len(self.query_elem)] = row
             cnt += 1
-            if self.query_dataframe.isna().iloc[cnt][1]: # 次行がNaNなら,ヘッダ対象外の項目を省いて終わり 
-                self.query_sub_elem = self.query_elem[self.query_elem["CSVヘッダ"].astype(str).str.match(r"^(?!\d{2}_).*", na=False) ].copy()
-                self.query_elem     = self.query_elem[self.query_elem["CSVヘッダ"].astype(str).str.match(r"^\d{2}_.*", na=False)] # {数字2桁}_*の形式のもののみ残す
+            if cnt > end_num:
+                # 1-1の33行目みたいなやつを弾きたければここで条件分岐
                 break
+
 
     def exec_func(self, query_num:str, excel_path:str):
         print(f"{TAB(1)}Get Query Information")
