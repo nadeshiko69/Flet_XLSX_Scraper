@@ -11,6 +11,9 @@ class Handlers:
     queryDataFrame:GetQueryDataframe
     
     def __init__(self):
+        self.initialize()
+        
+    def initialize(self):
         self.queryDataFrame = GetQueryDataframe()
         self.templateParameter = TemplateParameter()
         self.makeFluxFile = MakeFluxFile()
@@ -21,6 +24,7 @@ class Handlers:
         selected_files_text: ft.Text,
         information_area: ft.Container,
         dropdown_area:ft.Container,
+        read_button_area:ft.Container,
         query_area:ft.Container
     ):
         async def handle_pick_files(e: ft.ControlEvent):
@@ -59,6 +63,7 @@ class Handlers:
                 )
                 information_area.update()
                 try:
+                    self.initialize()
                     self.queryDataFrame.query_num = "3-3"
                     self.queryDataFrame.query_dataframe = await asyncio.to_thread(
                         pd.read_excel,
@@ -101,27 +106,22 @@ class Handlers:
                     information_area.content = ft.Text(f"読み込み失敗: {ex}", color=ft.Colors.RED)
                     information_area.update()
 
-            # 初期画面：シート選択→読み込みボタン
-            information_area.content = ft.Container(
+            sheet_dd = ft.Dropdown(
+                label="Select Query",
+                options=[ft.dropdown.Option(name) for name in sheets],
+                value=(sheets[0] if sheets else None),
                 expand=True,
-                content=ft.Column(
-                    expand=True,
-                    controls=[
-                        ft.Text("シート名の一覧", style=ft.TextThemeStyle.TITLE_MEDIUM),
-                        sheet_dd,
-                        ft.Row(
-                            controls=[
-                                ft.Button(
-                                    content="このシートを読み込む",
-                                    icon=ft.Icons.DOWNLOAD,
-                                    on_click=load_selected_sheet,
-                                )
-                            ]
-                        )
-                    ],
-                ),
             )
-            information_area.update()
+            load_button = ft.Button(
+                content="Read",
+                icon=ft.Icons.FILE_OPEN,
+                on_click=load_selected_sheet,
+            )
+         
+            dropdown_area.content = sheet_dd
+            dropdown_area.update()
+            read_button_area.content = load_button
+            read_button_area.update()
 
         return handle_pick_files
 
