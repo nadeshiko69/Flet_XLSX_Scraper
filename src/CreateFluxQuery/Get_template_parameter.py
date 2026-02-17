@@ -64,10 +64,10 @@ class TemplateParameter:
 
     def get_tag_filter(self, query_dataframe:GetQueryDataframe):
         # タグたちのうち、集計タグに記載のあるものを除外して出力
-        tags = self.find_matched_element(query_dataframe.query_elem, "INPUT_入力データ物理名", r"^t_.*", True) # タグたち
+        tags = self.find_matched_element(query_dataframe.query_elem, "入力データ物理名", r"^t_.*", True) # タグたち
         agg_tags = re.split(r"[,/、・]", query_dataframe.query_info["集計タグ"]) # TODO: 区切り文字のレパートリーがほかに見つかったら追加
         for at in agg_tags:
-            tags = tags.drop(tags[tags["INPUT_項目名"] == at].index) # 値が一致したものはDrop
+            tags = tags.drop(tags[tags["項目名"] == at].index) # 値が一致したものはDrop
         if not tags.empty:
             for tag in tags:
                 pass
@@ -89,10 +89,10 @@ class TemplateParameter:
 
     def get_field_filter(self, query_dataframe:GetQueryDataframe):
         # TODO: 値の範囲の制限とかあれば追加
-        fields = self.find_matched_element(query_dataframe.query_elem, "INPUT_入力データ物理名", r"^f_.*", True).drop_duplicates(subset=["INPUT_入力データ物理名"]) # フィールドたち(重複カット)
+        fields = self.find_matched_element(query_dataframe.query_elem, "入力データ物理名", r"^f_.*", True).drop_duplicates(subset=["入力データ物理名"]) # フィールドたち(重複カット)
         if not fields.empty:
             for _, field in fields.iterrows(): 
-                self.field_filter = f"{self.field_filter}{TAB(4)}r._field == \"{field["INPUT_入力データ物理名"]}\" or\n"
+                self.field_filter = f"{self.field_filter}{TAB(4)}r._field == \"{field["入力データ物理名"]}\" or\n"
         
         self.field_filter = f"{self.field_filter[:-3]})"
 
@@ -201,7 +201,7 @@ class TemplateParameter:
         for _, target in query_dataframe.query_elem.iterrows():
             if cnt in child_query:
                 field_name = target["CSVヘッダ"]
-                filter_name = target["INPUT_入力データ物理名"]
+                filter_name = target["入力データ物理名"]
                 func = self.factory_child_query(field_name)
                 
                 child_name = re.sub(r"^\d{2}_", "", target.loc["CSVヘッダ"]) # 名前の重複を避けるためCSVヘッダを付与
@@ -231,13 +231,13 @@ class TemplateParameter:
     def get_child_query(self, query_dataframe:GetQueryDataframe, child_query:set): # 日内MAX、SUMなど作成の必要があるか判定
         # 時間単位でデータを区切る子クエリの作成
         intvl = query_dataframe.query_info["集計時間単位"]
-        tags = self.find_matched_element(query_dataframe.query_elem, "INPUT_入力データ物理名", r"^t_.*").iloc[:,0].to_list()
+        tags = self.find_matched_element(query_dataframe.query_elem, "入力データ物理名", r"^t_.*").iloc[:,0].to_list()
         self.make_regular_query(intvl, tags)
         self.child_query = self.make_child_query(query_dataframe, tags, child_query)
         self.child_query_name = str(self.child_query_list).replace("'", "")
 
     def get_group_key(self, query_dataframe:GetQueryDataframe):
-        self.result_group_list = self.find_matched_element(query_dataframe.query_elem, "INPUT_入力データ物理名", r"^t_.*").iloc[:,0].to_list()
+        self.result_group_list = self.find_matched_element(query_dataframe.query_elem, "入力データ物理名", r"^t_.*").iloc[:,0].to_list()
         rowkey = ["_time"] + self.result_group_list
         self.pivoted_rowkey = self.list_to_str_for_flux(rowkey)
 
@@ -266,9 +266,9 @@ class TemplateParameter:
     def make_result_map(self, query_dataframe:GetQueryDataframe):
         for _, elem in query_dataframe.query_elem.iterrows():
             query = MANUAL_CREATE
-            if   elem["INPUT_項目名"] == "日付": query = "string(v: date.year(t: r._time)) + \"/\" + (if date.month(t: r._time) < 10 then \"0\" else \"\") + string(v: date.month(t: r._time)) + \"/\" + (if date.monthDay(t: r._time) < 10 then \"0\" else \"\") + string(v: date.monthDay(t: r._time))"
-            elif elem["INPUT_項目名"] == "時間": query = "(if date.hour(t: r._time) < 10 then \"0\" else \"\") + string(v: date.hour(t: r._time)) + \":\" + (if date.minute(t: r._time) < 10 then \"0\" else \"\") + string(v: date.minute(t: r._time))"
-            elif elem["INPUT_入力データ物理名"].startswith("t_"): query = f"r.{elem["INPUT_入力データ物理名"]}"
+            if   elem["項目名"] == "日付": query = "string(v: date.year(t: r._time)) + \"/\" + (if date.month(t: r._time) < 10 then \"0\" else \"\") + string(v: date.month(t: r._time)) + \"/\" + (if date.monthDay(t: r._time) < 10 then \"0\" else \"\") + string(v: date.monthDay(t: r._time))"
+            elif elem["項目名"] == "時間": query = "(if date.hour(t: r._time) < 10 then \"0\" else \"\") + string(v: date.hour(t: r._time)) + \":\" + (if date.minute(t: r._time) < 10 then \"0\" else \"\") + string(v: date.minute(t: r._time))"
+            elif elem["入力データ物理名"].startswith("t_"): query = f"r.{elem["入力データ物理名"]}"
             else: query = f"if exists r[\"{elem["CSVヘッダ"]}\"] then r[\"{elem["CSVヘッダ"]}\"] else 0"
             
             self.result_map = f"{self.result_map}{TAB(2)}\"{elem["CSVヘッダ"]}\": {query},\n"
