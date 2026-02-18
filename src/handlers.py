@@ -18,6 +18,7 @@ class Handlers:
         self.templateParameter = TemplateParameter()
         self.makeFluxFile = MakeFluxFile()
         self._selected_rows: set[int] = set()
+        self.time_parameters_set_by_user = False  # 時間パラメータがユーザーによって設定されたか
 
     def make_handle_pick_files(
         self,
@@ -79,6 +80,7 @@ class Handlers:
                     self.queryDataFrame.get_input_output_info()
                     self.queryDataFrame.get_search_units()
                     self.queryDataFrame.get_query_elem()
+                    self.templateParameter.get_time_parameter(self.queryDataFrame)
 
                     table = self._df_to_datatable(self.queryDataFrame.query_elem, max_rows=50, max_cols=20)
                     horizontal_scroller = ft.Row(scroll="always", controls=[table])
@@ -86,11 +88,27 @@ class Handlers:
 
                     handle_create_flux = self.make_handle_create_flux(query_area)
 
+                    start_utc_field = ft.TextField(
+                        label="START_UTC",
+                        value=self.templateParameter.start_utc,
+                        on_change=lambda e: (setattr(self.templateParameter, 'start_utc', e.control.value), setattr(self, 'time_parameters_set_by_user', True)),
+                        width=300,
+                    )
+                    stop_utc_field = ft.TextField(
+                        label="STOP_UTC",
+                        value=self.templateParameter.stop_utc,
+                        on_change=lambda e: (setattr(self.templateParameter, 'stop_utc', e.control.value), setattr(self, 'time_parameters_set_by_user', True)),
+                        width=300,
+                    )
+
                     information_area.content = ft.Container(
                         expand=True,
                         content=ft.Column(
                             expand=True,
                             controls=[
+                                ft.Row(
+                                    controls=[start_utc_field, stop_utc_field],
+                                ),
                                 scroller,
                                 ft.Button(
                                     content="Create Flux",
@@ -134,7 +152,9 @@ class Handlers:
         async def handle_create_flux(e: ft.ControlEvent):
             try:
                 # Create Parameter
-                self.templateParameter.exec_func(self.queryDataFrame, self._selected_rows)
+                saved_start = self.templateParameter.start_utc if self.time_parameters_set_by_user else None
+                saved_stop = self.templateParameter.stop_utc if self.time_parameters_set_by_user else None
+                self.templateParameter.exec_func(self.queryDataFrame, self._selected_rows, self.time_parameters_set_by_user, saved_start, saved_stop)
                 ret = self.makeFluxFile.exec_func(self.queryDataFrame.query_num, self.templateParameter)
                 flux_text = ret
 

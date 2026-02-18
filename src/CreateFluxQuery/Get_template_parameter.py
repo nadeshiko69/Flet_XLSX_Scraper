@@ -204,7 +204,7 @@ class TemplateParameter:
                 filter_name = target["入力データ物理名"]
                 func = self.factory_child_query(field_name)
                 
-                child_name = f"child_{re.sub(r"^\d{2}_", "", target.loc["CSVヘッダ"])}" # 名前の重複を避けるためCSVヘッダを付与
+                child_name = f"child_{re.sub(r"^\d{2}_", "", target.loc["CSVヘッダ"])}".replace(":", "_").replace("/", "_").replace(" ", "_")
                 group_col = f"\"{"\", \"".join(tags)}\", \"_time\""
                 keep_col = self.list_to_str_for_flux(["_time","_value","_field"] + tags)
                 self.child_query_list.append(child_name)
@@ -290,12 +290,16 @@ class TemplateParameter:
 
 
 ##### 外部実行用
-    def exec_func(self, query_dataframe:GetQueryDataframe, child_query:set):
+    def exec_func(self, query_dataframe:GetQueryDataframe, child_query:set, time_parameters_set_by_user: bool = False, saved_start_utc: str = None, saved_stop_utc: str = None):
         print(f"{TAB(1)}Get Template Parameter")
         self.initialize()
+        if time_parameters_set_by_user and saved_start_utc and saved_stop_utc:
+            self.start_utc = saved_start_utc
+            self.stop_utc = saved_stop_utc
         self.get_group_key(query_dataframe)             # RESULT_GROUP, PIVOTED_ROWKEY
         self.get_direct_parameter(query_dataframe)      # QUERY_INFO, QUERY_ELEM, OUTPUT_FILENAME, MEASUREMENT, BUCKET
-        self.get_time_parameter(query_dataframe)        # START_UTC, STOP_UTC
+        if not time_parameters_set_by_user:
+            self.get_time_parameter(query_dataframe)        # START_UTC, STOP_UTC
         # self.get_tag_filter(query_dataframe)            # TAG_FILTER
         self.get_field_filter(query_dataframe)          # FIELD_FILTER
         self.get_jst_range_clip(query_dataframe)        # JST_RANGE_CLIP
