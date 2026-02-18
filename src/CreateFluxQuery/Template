@@ -19,10 +19,6 @@ $CHILD_QUERY
 pivoted = union(tables: $CHILD_QUERY_NAME)
 	|> pivot(rowKey: $PIVOTED_ROWKEY, columnKey:["_field"], valueColumn:"_value")
 
-// 清書
-// mapの欠損補完値は必要に応じて修正
-// int型の場合: then以下 int(v: r["XXX"]) else 0,
-// float型:     then以下　r["XXX"] else 0.0,
 result = pivoted
 	|> group(columns:$RESULT_GROUP)
 	|> sort(columns: $RESULT_SORT)

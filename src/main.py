@@ -3,7 +3,7 @@ from handlers import Handlers
 
 def main(page: ft.Page):
     selected_files = ft.Text()
-    dropdown_area  = ft.Container(width=380, alignment=ft.Alignment.CENTER_LEFT)
+    dropdown_area  = ft.Container(width=300, alignment=ft.Alignment.CENTER_LEFT)
     read_button_area = ft.Container(width=100, alignment=ft.Alignment.CENTER_LEFT)
 
     information_area =  ft.Container(

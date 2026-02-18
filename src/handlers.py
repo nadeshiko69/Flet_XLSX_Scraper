@@ -255,7 +255,20 @@ class Handlers:
                         self._selected_rows.add(i) if e.control.value else self._selected_rows.discard(i)
                     ),
                 )
-                data_cells = [ft.DataCell(ft.Text("" if pd.isna(v) else str(v))) for v in row]
+                data_cells = []
+                for j, v in enumerate(row):
+                    col_name = available_columns[j] if j < len(available_columns) else None
+                    if col_name == "入力データ物理名":
+                        textfield = ft.TextField(
+                            value="" if pd.isna(v) else str(v),
+                            on_change=lambda e, i=i, j=j: self._update_cell(i, j, e.control.value),
+                            dense=True,
+                            border=ft.InputBorder.NONE,
+                            bgcolor=ft.Colors.GREY_50,
+                        )
+                        data_cells.append(ft.DataCell(textfield))
+                    else:
+                        data_cells.append(ft.DataCell(ft.Text("" if pd.isna(v) else str(v))))
                 rows.append(ft.DataRow(cells=[ft.DataCell(checkbox), *data_cells],))
 
             return ft.DataTable(
@@ -268,3 +281,12 @@ class Handlers:
             )
 
         return ft.DataTable(columns=[], rows=[], show_checkbox_column=True)
+
+    def _update_cell(self, row_idx: int, col_idx: int, new_value: str):
+        # DataFrameを更新
+        available_columns = [col for col in ["CSVヘッダ", "集計のキー", "入力データ物理名", "処理"] if col in self.queryDataFrame.query_elem.columns]
+        if col_idx < len(available_columns):
+            col_name = available_columns[col_idx]
+            self.queryDataFrame.query_elem.loc[self.queryDataFrame.query_elem.index[row_idx], col_name] = new_value
+        # DataTableの表示を更新（必要に応じて）
+        # ここではDataTableを再構築せずに、変更を反映

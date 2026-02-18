@@ -204,7 +204,7 @@ class TemplateParameter:
                 filter_name = target["入力データ物理名"]
                 func = self.factory_child_query(field_name)
                 
-                child_name = re.sub(r"^\d{2}_", "", target.loc["CSVヘッダ"]) # 名前の重複を避けるためCSVヘッダを付与
+                child_name = f"child_{re.sub(r"^\d{2}_", "", target.loc["CSVヘッダ"])}" # 名前の重複を避けるためCSVヘッダを付与
                 group_col = f"\"{"\", \"".join(tags)}\", \"_time\""
                 keep_col = self.list_to_str_for_flux(["_time","_value","_field"] + tags)
                 self.child_query_list.append(child_name)
