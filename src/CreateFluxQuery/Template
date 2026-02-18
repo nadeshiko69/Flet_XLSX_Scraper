@@ -1,0 +1,32 @@
+$IMPORT_MATH
+$IMPORT_STRINGS
+$IMPORT_REGEXP
+$IMPORT_DATE
+
+// 指定した条件で必要な情報のみ抽出
+base = from(bucket: "shelty_db/$BUCKET")
+	|> range(start: $START_UTC, stop: $STOP_UTC)
+	|> filter(fn: (r) => r._measurement == "$MEASUREMENT")
+$TAG_FILTERS
+$FIELD_FILTERS
+	|> timeShift(duration: 9h)
+$JST_RANGE_CLIP
+	|> toFloat()
+
+// 子クエリたち
+$CHILD_QUERY
+// 手動作成した子クエリは下記UNIONに追加すること
+pivoted = union(tables: $CHILD_QUERY_NAME)
+	|> pivot(rowKey: $PIVOTED_ROWKEY, columnKey:["_field"], valueColumn:"_value")
+
+// 清書
+// mapの欠損補完値は必要に応じて修正
+// int型の場合: then以下 int(v: r["XXX"]) else 0,
+// float型:     then以下　r["XXX"] else 0.0,
+result = pivoted
+	|> group(columns:$RESULT_GROUP)
+	|> sort(columns: $RESULT_SORT)
+	|> map(fn: (r)=> ({
+$RESULT_MAP
+	}))
+	|> yield(name: $YIELD_NAME)

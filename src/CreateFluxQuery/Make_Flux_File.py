@@ -8,7 +8,7 @@ class MakeFluxFile:
   
     # 情報を集めて出力
     def make_flux_file(self, query_num: str,  template_parameter:TemplateParameter):
-        with open("src/CreateFluxQuery/Template.flux", "r", encoding="utf-8") as f:
+        with open("src/CreateFluxQuery/Template", "r", encoding="utf-8") as f:
             temp_content = f.read()
             tmp = string.Template(temp_content)
 
