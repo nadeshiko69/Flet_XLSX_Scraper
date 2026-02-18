@@ -269,7 +269,10 @@ class TemplateParameter:
             if   elem["項目名"] == "日付": query = "string(v: date.year(t: r._time)) + \"/\" + (if date.month(t: r._time) < 10 then \"0\" else \"\") + string(v: date.month(t: r._time)) + \"/\" + (if date.monthDay(t: r._time) < 10 then \"0\" else \"\") + string(v: date.monthDay(t: r._time))"
             elif elem["項目名"] == "時間": query = "(if date.hour(t: r._time) < 10 then \"0\" else \"\") + string(v: date.hour(t: r._time)) + \":\" + (if date.minute(t: r._time) < 10 then \"0\" else \"\") + string(v: date.minute(t: r._time))"
             elif elem["入力データ物理名"].startswith("t_"): query = f"r.{elem["入力データ物理名"]}"
-            else: query = f"if exists r[\"{elem["CSVヘッダ"]}\"] then r[\"{elem["CSVヘッダ"]}\"] else 0"
+            else: 
+                # AVGなら欠損値補完はfloat型
+                if "avg" in elem["入力データ物理名"]: query = f"if exists r[\"{elem['CSVヘッダ']}\"] then r[\"{elem['CSVヘッダ']}\"] else 0.0"
+                else:                                query = f"if exists r[\"{elem['CSVヘッダ']}\"] then int(v: r[\"{elem['CSVヘッダ']}\"]) else 0"
             
             self.result_map = f"{self.result_map}{TAB(2)}\"{elem["CSVヘッダ"]}\": {query},\n"
         self.result_map = self.result_map[:-2]
