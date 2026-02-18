@@ -138,14 +138,21 @@ class GetQueryDataframe:
     # クエリの出力項目を取得
     def get_query_elem(self):
         row_num = self.query_dataframe.index[self.query_dataframe[1] == "OUTPUT CSV出力項目毎の集計処理"].tolist()[0] # query_elemを取得し始める行番号
-        end_num = self.query_dataframe.index[self.query_dataframe[1] == "OUTPUTイメージ"].tolist()[0]-2 # query_elemを取得し終わる行番号
-
+        
+        def find_first_empty_row(df, start_row):
+            for idx in range(start_row, len(df)):
+                if df.iloc[idx].isna().all() or (df.iloc[idx] == '').all():
+                    return idx
+            return len(df)       
+        end_num = find_first_empty_row(self.query_dataframe, row_num + 1) - 1
+        
         # 列名を2行分チェック
         row_title_1 = self.query_dataframe.iloc[row_num+1]
         row_title_2 = self.query_dataframe.iloc[row_num+2]
               
         init_num = row_num+3
         cnt = init_num
+
         while True:
             tmp_list = [] # query_elemの各列の値をquery_dataframeの何列目から取得するか
             for row_name in self.query_elem:
@@ -161,6 +168,7 @@ class GetQueryDataframe:
             num = self.query_dataframe.iloc[cnt][tmp_dict.get('項番')]
             value = self.query_dataframe.iloc[cnt][tmp_dict.get('OUTPUT CSV項目')]
             header = self.query_dataframe.iloc[cnt][tmp_dict.get('CSVヘッダ')]
+            agg_key = self.query_dataframe.iloc[cnt][tmp_dict.get('集計のキー')] if tmp_dict.get('集計のキー') is not None else ""
             input_data = self.query_dataframe.iloc[cnt][tmp_dict.get('入力データ物理名')]
             input_name = self.query_dataframe.iloc[cnt][tmp_dict.get('項目名')]
             exec = self.query_dataframe.iloc[cnt][tmp_dict.get('処理')]
@@ -173,6 +181,7 @@ class GetQueryDataframe:
                 "項番": num,
                 "OUTPUT CSV項目": value,
                 "CSVヘッダ": header,
+                "集計のキー": agg_key,
                 "入力データ物理名": input_data,
                 "項目名": input_name,
                 "処理": exec,

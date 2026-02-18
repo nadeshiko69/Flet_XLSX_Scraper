@@ -228,11 +228,13 @@ class Handlers:
 
         return handle_create_flux
 
-    # TODO : 表示項目を絞る
-    # 子クエリ、CSVヘッダ、集計キー、INPUT_入力データ物理名くらいでいいかも
     def _df_to_datatable(self, data, *, max_rows: int = 50, max_cols: int = 20) -> ft.DataTable:
         if hasattr(data, "iloc"):  # pandas DataFrame と判定
-            sub = data.iloc[:max_rows, :max_cols]
+            # 表示したい列を指定
+            selected_columns = ["CSVヘッダ", "集計のキー", "入力データ物理名", "処理"]
+            # 選択した列が存在する場合のみフィルタリング
+            available_columns = [col for col in selected_columns if col in data.columns]
+            sub = data[available_columns].iloc[:max_rows] if available_columns else data.iloc[:max_rows, :max_cols]
 
             raw_default = getattr(self.queryDataFrame, "child_query_target", []) or []
             default_checked: set[int] = {i for i in raw_default if isinstance(i, int) and 0 <= i < len(sub)}
