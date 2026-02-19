@@ -6,6 +6,7 @@ from typing import Callable
 from CreateFluxQuery.Get_query_dataframe import GetQueryDataframe
 from CreateFluxQuery.Get_template_parameter import TemplateParameter
 from CreateFluxQuery.Make_Flux_File import MakeFluxFile
+from utility import Utility
 
 class Handlers:
     queryDataFrame:GetQueryDataframe
@@ -55,6 +56,9 @@ class Handlers:
             )
             dropdown_area.content = sheet_dd
             dropdown_area.update()
+            
+            utility = Utility()
+            utility.init_UI(information_area, query_area)
 
             async def load_selected_sheet(_e: ft.ControlEvent):
                 information_area.content = ft.Row(

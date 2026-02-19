@@ -1,7 +1,9 @@
 import flet as ft
 from handlers import Handlers
+from utility import Utility
 
 def main(page: ft.Page):
+    page.title = "Flux Query Maker"
     selected_files = ft.Text()
     dropdown_area  = ft.Container(width=300, alignment=ft.Alignment.CENTER_LEFT)
     read_button_area = ft.Container(width=100, alignment=ft.Alignment.CENTER_LEFT)
@@ -12,16 +14,6 @@ def main(page: ft.Page):
                         bgcolor=ft.Colors.SURFACE,
                         border=ft.Border.all(1, ft.Colors.GREY_400),
                         border_radius=8,
-                        content=ft.Column(
-                            expand=True,
-                            horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
-                            controls=[
-                                ft.Text(
-                                    value="Query Information Table",
-                                    selectable=True,
-                                )
-                            ],
-                        ),
                     )
     query_area = ft.Container(
                                 expand=True,
@@ -29,16 +21,6 @@ def main(page: ft.Page):
                                 bgcolor=ft.Colors.SURFACE,
                                 border=ft.Border.all(1, ft.Colors.GREY_400),
                                 border_radius=8,
-                                content=ft.Column(
-                                    expand=True,
-                                    horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
-                                    controls=[
-                                        ft.Text(
-                                            value="Output Query",
-                                            selectable=True,
-                                        )
-                                    ],
-                                ),
                             )
     
     handlers = Handlers()
@@ -78,6 +60,9 @@ def main(page: ft.Page):
             expand=True,
         )
     )
+
+    utility = Utility()
+    utility.init_UI(information_area, query_area)
 
 if __name__ == "__main__":
     ft.run(main)

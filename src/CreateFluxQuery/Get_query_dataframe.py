@@ -174,9 +174,13 @@ class GetQueryDataframe:
             exec = self.query_dataframe.iloc[cnt][tmp_dict.get('処理')]
             explain = self.query_dataframe.iloc[cnt][tmp_dict.get('説明')]
             
-            if input_data.startswith("f_"):
-                self.child_query_target.append(cnt - init_num) # GUI上でチェックをつけておく行数を記憶
-            
+            try:
+                if input_data.startswith("f_"):
+                    self.child_query_target.append(cnt - init_num) # GUI上でチェックをつけておく行数を記憶
+            except:
+                print(f"invalid element : \"入力データ物理名\" line {cnt+1}" )
+                raise
+                        
             row = pd.Series({
                 "項番": num,
                 "OUTPUT CSV項目": value,
@@ -190,7 +194,7 @@ class GetQueryDataframe:
             self.query_elem.loc[len(self.query_elem)] = row
             cnt += 1
             if cnt > end_num:
-                # 1-1の33行目みたいなやつを弾きたければここで条件分岐
+                
                 break
 
 
