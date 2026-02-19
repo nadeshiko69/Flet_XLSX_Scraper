@@ -166,3 +166,4 @@ storage/
 *.xlsx
 *.flux
 output/*
+help.txt

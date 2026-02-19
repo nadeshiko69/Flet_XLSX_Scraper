@@ -44,8 +44,8 @@ class MakeFluxFile:
             }         
             ret = tmp.safe_substitute(values)
 
-        with open(f"output/{template_parameter.output_filename}", mode="w", encoding="utf-8") as file:
-            file.write(ret)
+        # with open(f"output/{template_parameter.output_filename}", mode="w", encoding="utf-8") as file:
+        #     file.write(ret)
         
         return ret
             
