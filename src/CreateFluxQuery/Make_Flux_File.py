@@ -1,6 +1,7 @@
 from CreateFluxQuery.Get_template_parameter import TemplateParameter
 import string
 import CreateFluxQuery.Parameter as p
+import glob
 
 class MakeFluxFile:
     def __init__(self) -> None:
@@ -8,7 +9,9 @@ class MakeFluxFile:
   
     # 情報を集めて出力
     def make_flux_file(self, query_num: str,  template_parameter:TemplateParameter):
-        with open("src/CreateFluxQuery/Template", "r", encoding="utf-8") as f:
+        template_path = glob.glob("**/Template", recursive=True)[0]
+
+        with open(template_path, "r", encoding="utf-8") as f:
             temp_content = f.read()
             tmp = string.Template(temp_content)
 
